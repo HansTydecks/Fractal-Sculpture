@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Generate modular wall sculptures and export the pieces and moulds for 3D printing and resin casting." />
+    <title>Fractal Sculpture — wall sculpture generator</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='%23e4572e'/%3E%3Cpath d='M16 9l6 3.500v7L16 23l-6-3.500v-7z' fill='%23ffe9a8'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <aside id="panel">
+        <header>
+          <h1>Fractal Sculpture</h1>
+          <p>Modular wall sculptures, generated. Print or cast every piece.</p>
+        </header>
+        <div class="row">
+          <button id="randomise" class="primary" type="button">Randomise</button>
+          <label class="seed">Seed <input id="seed" type="number" min="0" step="1" /></label>
+        </div>
+        <div id="presets" role="group" aria-label="Presets"></div>
+        <div id="controls"></div>
+        <section class="export">
+          <h2>Fabricate</h2>
+          <label class="check"><input id="withMoulds" type="checkbox" checked /> Include resin moulds</label>
+          <button id="kit" class="primary" type="button">Download kit (ZIP)</button>
+          <div class="row">
+            <button id="wallStl" type="button">Wall STL</button>
+            <button id="png" type="button">PNG image</button>
+          </div>
+          <div class="row">
+            <button id="saveJson" type="button">Save design</button>
+            <button id="loadJson" type="button">Load design</button>
+            <input id="file" type="file" accept="application/json,.json" hidden />
+          </div>
+          <p id="status" role="status" aria-live="polite"></p>
+        </section>
+      </aside>
+      <main id="stage">
+        <canvas id="view" aria-label="3D preview of the sculpture. Drag to orbit, scroll to zoom."></canvas>
+        <div id="stats" aria-live="polite"></div>
+        <button id="reset" type="button" title="Reset the camera">Front view</button>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
