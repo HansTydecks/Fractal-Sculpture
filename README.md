@@ -8,6 +8,8 @@ Inspired by the parametric, field-driven wall sculptures of Herschel Shapiro. Th
 borrows the method (grid + flow fields + a parametric piece); it does not reproduce any of
 his works.
 
+![Tide Ring preset](docs/preview-tide-ring.png)
+
 ## Run it
 
 ```bash
