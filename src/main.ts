@@ -1,8 +1,8 @@
 import './style.css';
 import { DEFAULTS, PALETTES, PRESETS, randomise, type Design } from './params';
-import { buildSculpture, type Sculpture } from './build';
+import { buildSculpture, prototypeLayout, EXPORT_BUDGET, type PrototypeOptions, type Sculpture } from './build';
 import { Viewer } from './viewer';
-import { buildKit, wallStl } from './exporters';
+import { buildKit, buildPrototype, wallStl } from './exporters';
 
 type Key = keyof Design;
 interface Ctl {
@@ -125,6 +125,33 @@ let activePreset = PRESETS[0].name;
 const viewer = new Viewer($<HTMLCanvasElement>('view'));
 const refreshers: (() => void)[] = [];
 
+const PROTO_KEY = 'fractal-sculpture-printer';
+let proto: PrototypeOptions = { buildX: 218, buildY: 123, buildZ: 250, across: 1, down: 1, base: 2 };
+try {
+  // the printer's build volume is worth remembering between visits
+  const saved = JSON.parse(localStorage.getItem(PROTO_KEY) ?? '{}');
+  for (const k of ['buildX', 'buildY', 'buildZ', 'base'] as const)
+    if (typeof saved[k] === 'number' && saved[k] > 0) proto[k] = saved[k];
+} catch {
+  /* storage unavailable: defaults are fine */
+}
+
+function protoInfo() {
+  const l = prototypeLayout(sculpture, design, proto);
+  const n = l.panels.length;
+  const el = $('protoInfo');
+  el.textContent =
+    l.scale <= 0
+      ? 'Does not fit this build volume.'
+      : `Scale ${(l.scale * 100).toFixed(l.scale < 0.1 ? 1 : 0)}% → ${n > 1 ? `${n} panels, largest ` : ''}${l.size[0].toFixed(0)} × ${l.size[1].toFixed(0)} × ${l.size[2].toFixed(0)} mm`;
+  for (const w of l.warnings) {
+    const span = document.createElement('span');
+    span.className = 'warn';
+    span.textContent = w;
+    el.append(span);
+  }
+}
+
 function fmt(v: number, step = 1) {
   return step >= 1 ? String(Math.round(v)) : v.toFixed(step >= 0.1 ? 1 : 2);
 }
@@ -143,6 +170,7 @@ function rebuild() {
     (s.twistFactor < 0.995 ? `<span class="note">twist held to ${Math.round(s.twistFactor * 100)}% so pieces clear each other</span>` : '') +
     (s.leanFactor < 0.995 ? `<span class="note">lean held to ${Math.round(s.leanFactor * 100)}% so pieces clear each other</span>` : '') +
     (s.clashes > 0 ? `<span class="warn"><b>${s.clashes}</b> pieces touch a neighbour — ${design.fit ? 'add gap or taper' : 'turn on “Avoid clashes”'}</span>` : '');
+  protoInfo();
 }
 
 let timer = 0;
@@ -309,14 +337,16 @@ function wire() {
   $('kit').addEventListener('click', (e) =>
     busy(e.currentTarget as HTMLButtonElement, 'Building kit…', async () => {
       const moulds = $<HTMLInputElement>('withMoulds').checked;
-      const zip = await buildKit(sculpture, design, { moulds });
+      // full-resolution meshes; a smaller budget with moulds keeps the ZIP a workable size
+      const fine = buildSculpture(design, moulds ? EXPORT_BUDGET / 2.5 : EXPORT_BUDGET);
+      const zip = await buildKit(fine, design, { moulds });
       download(zip, `${fileBase()}-kit.zip`, 'application/zip');
       return `Kit saved: ${sculpture.pieces.length} piece file${sculpture.pieces.length === 1 ? '' : 's'}${moulds ? ' with moulds' : ''}, ${(zip.length / 1e6).toFixed(1)} MB.`;
     }),
   );
   $('wallStl').addEventListener('click', (e) =>
     busy(e.currentTarget as HTMLButtonElement, 'Building STL…', () => {
-      const stl = wallStl(sculpture, design);
+      const stl = wallStl(buildSculpture(design, EXPORT_BUDGET), design);
       download(stl, `${fileBase()}-wall.stl`, 'model/stl');
       return `Wall STL saved (${(stl.length / 1e6).toFixed(1)} MB).`;
     }),
@@ -325,6 +355,31 @@ function wire() {
     busy(e.currentTarget as HTMLButtonElement, 'Rendering…', async () => {
       download(await viewer.png(), `${fileBase()}.png`);
       return 'Image saved.';
+    }),
+  );
+  const fields: [string, keyof PrototypeOptions][] = [
+    ['pvX', 'buildX'], ['pvY', 'buildY'], ['pvZ', 'buildZ'], ['pvAcross', 'across'], ['pvDown', 'down'], ['pvBase', 'base'],
+  ];
+  for (const [id, key] of fields) {
+    const input = $<HTMLInputElement>(id);
+    input.value = String(proto[key]);
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      if (!(v > 0)) return;
+      proto = { ...proto, [key]: Math.min(Number(input.max), Math.max(Number(input.min), v)) };
+      try {
+        localStorage.setItem(PROTO_KEY, JSON.stringify(proto));
+      } catch {
+        /* not essential */
+      }
+      protoInfo();
+    });
+  }
+  $('proto').addEventListener('click', (e) =>
+    busy(e.currentTarget as HTMLButtonElement, 'Building prototype…', async () => {
+      const r = await buildPrototype(buildSculpture(design, EXPORT_BUDGET), design, proto);
+      download(r.data, `${fileBase()}-prototype.${r.zipped ? 'zip' : 'stl'}`, r.zipped ? 'application/zip' : 'model/stl');
+      return `Prototype saved: ${r.panels} panel${r.panels === 1 ? '' : 's'}, ${(r.data.length / 1e6).toFixed(1)} MB.`;
     }),
   );
   $('saveJson').addEventListener('click', () => {

@@ -146,7 +146,7 @@ export class Viewer {
     let o = 0;
     for (const p of sc.placed) {
       let sh = cache.get(p.piece);
-      if (!sh) cache.set(p.piece, (sh = shaded(sc.pieces[p.piece].mesh, 38)));
+      if (!sh) cache.set(p.piece, (sh = shaded(sc.pieces[p.piece].mesh, 32)));
       const c = Math.cos(p.rot), s = Math.sin(p.rot);
       const r = toLinear(p.colour[0]), g = toLinear(p.colour[1]), b = toLinear(p.colour[2]);
       for (let k = 0; k < sh.pos.length; k += 3) {

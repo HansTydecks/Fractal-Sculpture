@@ -48,14 +48,26 @@ until none of them intersect.
   and a `README.txt` parts list. With moulds enabled it also holds, per piece, a
   `*_negative.stl` cavity mould and a `*_silicone_box.stl` master-in-a-cup for pouring a
   silicone mould.
-- **Wall STL** – the whole sculpture, optionally on a back plate.
+- **Prototype print** – the whole sculpture as one solid, scaled automatically to fit a resin
+  printer's build volume. Pieces are sunk 0.3 mm into a base of the thickness you choose so
+  slicers fuse everything together. Large walls can be split into panels (cut along cell
+  boundaries), which come as a ZIP of STLs.
+- **Wall STL** – the whole sculpture at full size, optionally on a back plate.
 - **PNG** – the current view.
 - **Save / load design** – the full parameter set as JSON.
 
 All STL files are in millimetres and watertight. The parts list marks each piece as `rigid`
 (pulls straight out of a hard mould) or `flexible` (needs a TPU or silicone mould).
 
+Mesh resolution follows the shape: about 3° of twist and 4 mm of height per layer, with extra
+points along each edge when pieces twist or round off. The preview is capped at roughly
+1.2 million triangles; exports are rebuilt at up to 2.5 million.
+
 ## Limits worth knowing
+
+- At prototype scale, gaps under about 0.3 mm fuse and thin tips may not survive; the panel
+  shows a warning when either applies. The prototype is solid (not hollowed) and has no
+  supports or drain holes.
 
 - Clash checking compares shaft cross-sections at six heights; domes, points and slanted tops
   are not included, and it is a guide rather than a guarantee.
