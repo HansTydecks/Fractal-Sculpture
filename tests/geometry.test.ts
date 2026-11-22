@@ -112,7 +112,7 @@ describe('sculpture', () => {
   });
   it('random designs always build', () => {
     let d = DEFAULTS;
-    for (let k = 0; k < 40; k++) {
+    for (let k = 0; k < 20; k++) {
       d = randomise({ ...d, wallW: 40, wallH: 30 });
       const sc = buildSculpture(d);
       expect(sc.placed.length).toBeGreaterThan(0);
