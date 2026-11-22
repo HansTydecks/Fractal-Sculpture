@@ -82,6 +82,11 @@ details[open] summary::after { content: '–'; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; flex: 1; min-height: 32px; padding: 4px 6px; background: #121317; }
 .seg button[aria-pressed='true'] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.trio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: center; min-width: 0; }
+.trio input { padding: 4px 5px; }
+.trio .x { color: var(--muted); font-size: 12px; }
+.ctl > span { color: var(--muted); }
+#protoInfo .warn { color: #ffb86b; display: block; }
 .hint { color: var(--muted); font-size: 12.5px; margin: -2px 0 10px; }
 
 .export { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }

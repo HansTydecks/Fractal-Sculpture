@@ -1,8 +1,8 @@
 import { zip, strToU8 } from 'fflate';
 import type { Design } from './params';
-import { wallTriangles, type Sculpture } from './build';
+import { prototypeLayout, prototypeTriangles, wallTriangles, type PrototypeOptions, type Sculpture } from './build';
 import { negativeMould, siliconeBox } from './mould';
-import type { Mesh } from './piece';
+import { rigidRelease, type Mesh } from './piece';
 
 /** Binary STL from a flat triangle soup (9 floats per triangle, mm). */
 export function stlFromTriangles(tris: Float32Array): Uint8Array {
@@ -37,7 +37,8 @@ export function stlFromMesh(m: Mesh): Uint8Array {
 }
 
 export function wallStl(sc: Sculpture, d: Design): Uint8Array {
-  return stlFromTriangles(wallTriangles(sc, d.backplate));
+  // sink the pieces slightly into the back plate so slicers fuse them into one solid
+  return stlFromTriangles(wallTriangles(sc, { backplate: d.backplate, sink: 0.3 }));
 }
 
 const label = (i: number) => 'P' + String(i + 1).padStart(3, '0');
@@ -102,7 +103,7 @@ function readme(sc: Sculpture, d: Design, moulds: boolean): string {
   lines.push('', 'piece  count  height_mm  volume_cm3  release');
   for (const p of sc.pieces)
     lines.push(
-      `${label(p.index)}   ${String(p.count).padStart(5)}  ${p.maxZ.toFixed(1).padStart(9)}  ${(p.volume / 1000).toFixed(1).padStart(10)}  ${p.rigid ? 'rigid' : 'flexible'}`,
+      `${label(p.index)}   ${String(p.count).padStart(5)}  ${p.maxZ.toFixed(1).padStart(9)}  ${(p.volume / 1000).toFixed(1).padStart(10)}  ${rigidRelease(p.chain) ? 'rigid' : 'flexible'}`,
     );
   return lines.join('\n') + '\n';
 }
@@ -130,4 +131,33 @@ export function buildKit(sc: Sculpture, d: Design, opt: KitOptions): Promise<Uin
   return new Promise((resolve, reject) =>
     zip(files, { level: 6 }, (err, data) => (err ? reject(err) : resolve(data))),
   );
+}
+
+/** Scaled-down print of the whole wall: one STL, or a ZIP of panel STLs with a plan. */
+export async function buildPrototype(
+  sc: Sculpture,
+  d: Design,
+  o: PrototypeOptions,
+): Promise<{ data: Uint8Array; zipped: boolean; panels: number }> {
+  const layout = prototypeLayout(sc, d, o);
+  if (layout.scale <= 0) throw new Error('the wall does not fit this build volume');
+  const parts = prototypeTriangles(sc, o, layout).map(stlFromTriangles);
+  if (parts.length === 1) return { data: parts[0], zipped: false, panels: 1 };
+  const files: Record<string, Uint8Array> = { 'assembly-map.svg': strToU8(assemblyMapSvg(sc)) };
+  const lines = [
+    `Prototype at ${(layout.scale * 100).toFixed(1)}% scale, ${parts.length} panels.`,
+    'Panels are numbered left to right, bottom row first, as seen from the front.',
+    'Panels marked "turned" were rotated a quarter turn anticlockwise to fit the plate.',
+    '',
+  ];
+  layout.panels.forEach((p, i) => {
+    const name = `panel-${String(i + 1).padStart(2, '0')}.stl`;
+    files[name] = parts[i];
+    lines.push(`${name}  ${(p.w * layout.scale).toFixed(0)} x ${(p.h * layout.scale).toFixed(0)} mm${p.rotated ? '  turned' : ''}`);
+  });
+  files['README.txt'] = strToU8(lines.join('\n') + '\n');
+  const data = await new Promise<Uint8Array>((resolve, reject) =>
+    zip(files, { level: 6 }, (err, out) => (err ? reject(err) : resolve(out))),
+  );
+  return { data, zipped: true, panels: parts.length };
 }

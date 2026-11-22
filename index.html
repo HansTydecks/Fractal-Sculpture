@@ -33,6 +33,27 @@
             <button id="loadJson" type="button">Load design</button>
             <input id="file" type="file" accept="application/json,.json" hidden />
           </div>
+          <h2>Prototype print</h2>
+          <p class="hint">The whole sculpture as one solid, scaled to fit your resin printer.</p>
+          <div class="ctl wide"><span>Build volume (mm)</span>
+            <div class="trio">
+              <input id="pvX" type="number" min="20" max="1000" step="1" aria-label="Build width in mm" />
+              <input id="pvY" type="number" min="20" max="1000" step="1" aria-label="Build depth in mm" />
+              <input id="pvZ" type="number" min="20" max="1000" step="1" aria-label="Build height in mm" />
+            </div>
+          </div>
+          <div class="ctl wide"><span>Panels</span>
+            <div class="trio">
+              <input id="pvAcross" type="number" min="1" max="8" step="1" aria-label="Panels across" />
+              <input id="pvDown" type="number" min="1" max="8" step="1" aria-label="Panels down" />
+              <span class="x">across × down</span>
+            </div>
+          </div>
+          <div class="ctl wide"><label for="pvBase">Base (mm)</label>
+            <input id="pvBase" type="number" min="0.5" max="10" step="0.5" />
+          </div>
+          <p id="protoInfo" class="hint" aria-live="polite"></p>
+          <button id="proto" class="primary" type="button">Download prototype STL</button>
           <p id="status" role="status" aria-live="polite"></p>
         </section>
       </aside>

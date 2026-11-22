@@ -105,7 +105,7 @@ export function buildPieceChain(s: PieceSpec): Chain {
   if (s.top === 'point') {
     end = P(1, 0, 0, D);
   } else if (s.top === 'dome') {
-    const M = 5;
+    const M = 10;
     for (let j = 1; j < M; j++) {
       const th = (j / M) * (Math.PI / 2);
       loops.push(ring(1, Math.cos(th), D * Math.sin(th)));
@@ -120,7 +120,7 @@ export function buildPieceChain(s: PieceSpec): Chain {
     const depth = Math.min(D, 0.75 * shaft);
     const rim = 0.84;
     loops.push(ring(1, rim));
-    const M = 6;
+    const M = 10;
     for (let j = 1; j < M; j++) {
       const u = j / M;
       loops.push(ring(1 - (depth * (1 - (1 - u) ** 2)) / shaft, rim * (1 - u)));
@@ -180,8 +180,10 @@ export function chainMesh(c: Chain): Mesh {
   for (let i = 0; i < n; i++) tris.push([0, at(0, i + 1), at(0, i)]);
   for (let l = 0; l + 1 < c.loops.length; l++)
     for (let i = 0; i < n; i++) {
-      tris.push([at(l, i), at(l, i + 1), at(l + 1, i + 1)]);
-      tris.push([at(l, i), at(l + 1, i + 1), at(l + 1, i)]);
+      // split each quad along its shorter diagonal: twisted faces come out smooth, not saw-toothed
+      const a = at(l, i), b = at(l, i + 1), c = at(l + 1, i + 1), e = at(l + 1, i);
+      if (dist2(verts[a], verts[c]) <= dist2(verts[b], verts[e])) tris.push([a, b, c], [a, c, e]);
+      else tris.push([a, b, e], [b, c, e]);
     }
   const last = c.loops.length - 1;
   const e = verts.length - 1;
@@ -190,6 +192,8 @@ export function chainMesh(c: Chain): Mesh {
   if (signedVolume(m) < 0) for (const t of tris) [t[1], t[2]] = [t[2], t[1]];
   return m;
 }
+
+const dist2 = (p: V3, q: V3) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2;
 
 export function signedVolume(m: Mesh): number {
   let v = 0;
@@ -227,15 +231,16 @@ export function isManifold(m: Mesh): boolean {
  */
 export function rigidRelease(c: Chain): boolean {
   const n = c.loops[0].length;
-  // only the shaft loops are convex outlines; cap loops shrink inwards and never undercut
+  const stride = Math.max(1, Math.floor(n / 24));
   for (let l = 0; l + 1 < c.loops.length; l++) {
     const a = c.loops[l];
     const b = c.loops[l + 1];
     if (b[0][2] < a[0][2] - 1e-6) break; // bowl going down: stop at the rim
-    for (const p of b) {
-      for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j += stride) {
+      const p = b[j];
+      for (let i = 0; i < n; i += stride) {
         const u = a[i];
-        const v = a[(i + 1) % n];
+        const v = a[(i + stride) % n];
         if ((v[0] - u[0]) * (p[1] - u[1]) - (v[1] - u[1]) * (p[0] - u[0]) < -0.02) return false;
       }
     }
